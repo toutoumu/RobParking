@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation=" 
+                http://www.springframework.org/schema/beans 
+                http://www.springframework.org/schema/beans/spring-beans-3.1.xsd 
+                http://www.springframework.org/schema/context 
+                http://www.springframework.org/schema/context/spring-context-3.1.xsd 
+                http://www.springframework.org/schema/mvc 
+                http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd">
+
+	<mvc:annotation-driven />
+
+	<!-- 默认访问跳转到登录页面 -->
+	<mvc:view-controller path="/" view-name="forward:/login" />
+
+	<mvc:resources mapping="/resources/**" location="/resources/" />
+
+	<!-- 启用spring mvc 注解 -->
+	<context:annotation-config />
+
+	<!-- 设置使用注解的类所在的jar包 -->
+	<context:component-scan base-package="com.dsfy.controller" />
+
+	<!-- 完成请求和注解POJO的映射 -->
+	<!-- <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" /> -->
+
+	<!-- 采用SpringMVC自带的JSON转换工具，支持@ResponseBody注解 -->
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<bean class="org.springframework.http.converter.json.GsonHttpMessageConverter">
+					<property name="gson">
+						<bean class="org.springframework.http.converter.json.GsonFactoryBean">
+							<!-- JSON的日期格式 -->
+							<property name="dateFormatPattern" value="yyyy-MM-dd HH:mm:ss" />
+						</bean>
+					</property>
+					<!-- 避免IE执行AJAX时,返回JSON出现下载文件 -->
+					<property name="supportedMediaTypes" value="text/html;charset=UTF-8" />
+				</bean>
+			</list>
+		</property>
+	</bean>
+
+	<!-- 对转向页面的路径解析。prefix：前缀， suffix：后缀 -->
+	<!-- <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver"> <property name="viewClass" value="org.springframework.web.servlet.view.JstlView" 
+		/> <property name="prefix" value="/" /> <property name="suffix" value=".jsp" /> </bean> -->
+
+	<!-- 集成spring异常处理 -->
+	<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<prop key="org.apache.shiro.authz.UnauthorizedException">/system/error.jsp</prop>
+				<!-- 验证异常进入的页面 -->
+				<prop key="org.apache.shiro.authz.AuthorizationException">/system/error.jsp</prop>
+				<prop key="java.lang.Exception">/error.do</prop>
+			</props>
+		</property>
+		<!-- <property name="statusCodes"> <props> <prop key="errors/error.jsp">500</prop> <prop key="errors/404.jsp">404</prop> 
+			</props> </property> -->
+		<!-- 设置日志输出级别，不定义则默认不输出警告等错误日志信息 -->
+		<!-- <property name="warnLogCategory" value="WARN"></property> -->
+		<!-- 默认错误页面，当找不到上面mappings中指定的异常对应视图时，使用本默认配置 -->
+		<!-- <property name="defaultErrorView" value="errors/error"></property> -->
+		<!-- 默认HTTP状态码 -->
+		<!-- <property name="defaultStatusCode" value="500"></property> -->
+	</bean>
+
+	<!-- 开启Shiro注解的Spring配置方式的beans。在lifecycleBeanPostProcessor之后运行 -->
+	<!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->
+	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor" />
+
+	<!-- 开启Shiro的注解(如@RequiresRoles,@RequiresPermissions),需借助SpringAOP扫描使用Shiro注解的类,并在必要时进行安全逻辑验证 -->
+	<!-- 配置以下两个bean即可实现此功能 -->
+	<!-- Enable Shiro Annotations for Spring-configured beans. Only run after the lifecycleBeanProcessor has run -->
+	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" depends-on="lifecycleBeanPostProcessor" />
+	<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+		<property name="securityManager" ref="securityManager" />
+	</bean>
+</beans>
